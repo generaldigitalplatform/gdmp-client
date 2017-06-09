@@ -2,7 +2,7 @@
     // $.material.init();
 
     var json ={
- "completedHtml": "<p><h4>Thank you for completing customer feedback</h4></p>",
+  "completedHtml": "<p><h4>Thank you for completing customer feedback</h4></p>\n<a href=\"javascript:location.reload(true)\">Go To Feedback</a>",
  "pages": [
   {
    "elements": [
@@ -1425,34 +1425,20 @@
  ]
 };
 
+ 
+Survey.defaultBootstrapCss.navigationButton = "btn btn-primary";
+Survey.Survey.cssType = "bootstrapmaterial";
+//Survey.Survey.cssType = "bootstrap";
 
+var model = new Survey.Model(json);
 
-// Survey.defaultBootstrapCss.navigationButton = "btn btn-primary";
-// //Survey.Survey.cssType = "bootstrapmaterial";
-// Survey.Survey.cssType = "bootstrap";
-// var model = new Survey.Model(json);
-// window.survey = model;
-// model.showTitle = false;
+window.survey = model;
+model.showTitle = false;
 
-
-Survey.Survey.cssType = "bootstrap";
-var survey = new Survey.Model(json);
-$("#surveyContainer").SurveyWindow({
-    model:survey,
-    onComplete:sendDataToServer
+$("#surveyElement").Survey({
+  model:model,
+  onComplete:sendDataToServer //SearchCustomerData
 });
-
-// $("#surveyElement").Survey({
-//   model:model,
-//   onComplete:sendDataToServer //SearchCustomerData
-// });
- /*
-    survey.onComplete.add(function (s) { 
-    var result = "\nThe results are:\n" + JSON.stringify(survey.data);
-    document.getElementById('survey_result').innerHTML = result; 
-    document.getElementById('survey_oncomplete').style.display = '';
-});
-*/
 
 }
 
@@ -1460,6 +1446,7 @@ if(!window["%hammerhead%"]) {
     init();
 }
 function sendDataToServer(survey) {
+
   var PersonalDetails;
   var ProductsUsageDetails=[];
   var ProductsInterestedDetails=[];
@@ -1610,7 +1597,7 @@ IndustryProfileJson.Industry={"Name":"Tele"};
 IndustryProfileJson.Industry.Company={"Name":"Vodafone"};
 IndustryProfileJson.Industry.Company.Products={"Name":"PreToPost"};
 
-IndustryProfileJson.Industry.Company.Products.ProductFeedback ={
+IndustryProfileJson.Industry.Company.Products.ProductFeedback ={  
   ProductsUsageDetails,
   ProductsInterestedDetails,
   ProductsInterestedCallbackDetails,
@@ -1619,7 +1606,8 @@ IndustryProfileJson.Industry.Company.Products.ProductFeedback ={
 }
 
 var customerProfile = $.extend(Personaldetail,PermanentAddressJson,ContactAddressJson);
-//var resultAsString = JSON.stringify(IndustryProfileJson);
+var customerFeedback; 
+var customerObjId;
 
 $.ajax({
         url: "http://localhost:3000/customer/profile", 
@@ -1628,24 +1616,61 @@ $.ajax({
         data: customerProfile,
         dataType: "json",
         success:function(result){
-            alert(JSON.stringify(result));
-        },
+            customerObjId = {
+              "CustomerId" : result._id
+            },
+            customerFeedback = $.extend(customerObjId,IndustryProfileJson);
+            $.ajax({
+                    url: "http://localhost:3000/customer/feedback", 
+                    type: "POST",
+                    crossDomain: true,
+                    data: customerFeedback,
+                    dataType: "json",
+                    success:function(result){
+                        alert(JSON.stringify(result));
+                    },
+                    error:function(xhr,status,error){
+                        alert(status);
+                    }
+                });
+            },      
         error:function(xhr,status,error){
             alert(status);
         }
     });
+}
 
- $.ajax({
-        url: "http://localhost:3000/customer/feedback", 
-        type: "POST",
-        crossDomain: true,
-        data: IndustryProfileJson,
-        dataType: "json",
-        success:function(result){
-            alert(JSON.stringify(result));
-        },
-        error:function(xhr,status,error){
-            alert(status);
-        }
-    });
+ function  SearchCustomerById() {
+  var customerId = document.getElementById('searchCustomerById').value;
+  var customerObjId;
+  $.ajax({
+                    url: "http://localhost:3000/customer/profile/"+customerId, 
+                    type: "GET",
+                    crossDomain: true,                    
+                    dataType: "json",
+                    success:function(result){
+                       alert(JSON.stringify(result));
+                        customerObjId = result._id;  
+                        var transform = {"<>":"div","html":"${FirstName} likes ${PrimaryPhone}"};        
+                        var html = json2html.transform(result,transform);
+                        alert(html);                      
+                        $.ajax({
+                        url: "http://localhost:3000/customer/feedback/"+customerObjId, 
+                        type: "GET",
+                        crossDomain: true,             
+                        dataType: "json",
+                        success:function(result){
+                            alert(JSON.stringify(result));
+                        },
+                        error:function(xhr,status,error){
+                            alert(status);
+                        }
+                      });
+
+                    },
+                    error:function(xhr,status,error){
+                        alert(status);
+                    }
+                });
+
 }
